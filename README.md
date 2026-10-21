@@ -2,6 +2,8 @@
 
 作者：jimmy哥
 
+在线网址：[https://jchen8877.github.io/jimmy-stock-monitor-project/](https://jchen8877.github.io/jimmy-stock-monitor-project/)
+
 这是可公开部署的动态网页。股票图表和行情条由 TradingView 官方嵌入组件提供；用户自选代码、模拟账户和成交记录保存在各自浏览器中，不会同步给站点所有者。模拟成交价由用户参照图表手动填写。
 
 ## 本地预览
@@ -10,7 +12,7 @@
 
 ## GitHub Pages
 
-将本目录内容放在仓库根目录。可用仓库 Settings → Pages 从 `main` 分支根目录发布；站点地址为 `https://<GitHub用户名>.github.io/<仓库名>/`。
+站点通过 GitHub Pages 从 `main` 分支根目录发布。后续提交到 `main` 会自动更新网站。
 
 ## 数据说明
 
