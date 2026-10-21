@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>US Stock Monitor · 美股监控与模拟交易</title>
+<style>
+:root{--bg:#0f1115;--card:#181b22;--bd:#262a33;--tx:#e6e8ec;--mu:#8b93a1;--g:#2fb97a;--r:#ef5b5b;--y:#f5c542}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.5 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+header{display:flex;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--bd);flex-wrap:wrap}
+h1{font-size:16px;margin:0}h2{margin:6px 0;font-size:20px}h3{margin:8px 0;font-size:14px;color:var(--mu)}.sp{flex:1}
+main{padding:12px 14px;max-width:1100px;margin:auto}[hidden]{display:none!important}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:12px;margin-bottom:12px}
+.row3{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin-bottom:12px}.row3 .card{margin:0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px;margin-bottom:12px}.grid2 .card{margin:0}
+.g{color:var(--g)}.r{color:var(--r)}.mu{color:var(--mu);font-size:12px}
+.tag{padding:2px 8px;border-radius:10px;font-size:12px;background:var(--bd)}.tag.g{background:#17352a}.tag.r{background:#3a1d1d}.tag.y{background:#3a321a;color:var(--y)}
+table{width:100%;border-collapse:collapse}th,td{padding:7px 6px;text-align:left;border-bottom:1px solid var(--bd)}th{color:var(--mu);font-weight:400;font-size:12px}
+tr[data-t]{cursor:pointer}tr[data-t]:hover{background:#1e222b}
+input,button{background:#20242d;color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:6px 10px;font:inherit}button{cursor:pointer}button:hover{border-color:var(--mu)}
+.b{background:#17352a;color:var(--g)}.s{background:#3a1d1d;color:var(--r)}
+.flow{display:flex;gap:16px;align-items:center;flex-wrap:wrap}.flow table{min-width:240px}
+.donut{width:140px;height:140px;border-radius:50%;position:relative;flex:none}.donut::after{content:'资金';position:absolute;inset:26px;background:var(--card);border-radius:50%;display:grid;place-items:center;color:var(--mu);font-size:12px}
+.bar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:12px;padding:8px 12px;background:var(--card);border:1px solid var(--bd);border-radius:10px}
+.note{background:#1c2430;border:1px solid #2c3a52;color:#b9c8e6;padding:8px 12px;border-radius:10px;margin-bottom:12px;font-size:13px}.warn{background:#3a1d1d;border:1px solid #6b2b2b;color:#ffb4b4;padding:8px 12px;border-radius:10px;margin-bottom:12px}
+a{color:#7aa7ff;text-decoration:none}input[type=text],#hlq,#pmq,#socialQ{width:100%}
+dialog{background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:12px;padding:16px}
+.opt{display:block;border:1px solid var(--bd);border-radius:8px;padding:10px;margin:8px 0;cursor:pointer}.opt.on{border-color:var(--g);background:#14221c}.opt input[type=radio]{width:auto}.opt input:not([type=radio]){margin-top:6px}
+.sw{position:relative}#sug{position:absolute;top:34px;left:0;min-width:300px;background:var(--card);border:1px solid var(--bd);border-radius:8px;z-index:20;display:none;overflow:hidden}
+#sug div{padding:7px 10px;cursor:pointer}#sug div:hover,#sug .hi{background:#252a35}
+footer{padding:12px 14px;color:var(--mu);font-size:12px;text-align:center}
+</style></head><body>
+<header><h1>美股监控 · 模拟交易</h1><span class="mu">作者：jimmy哥</span><span id="mode" class="tag"></span><div class="sp"></div>
+<div class="sw"><input id="add" type="text" placeholder="搜索代码/公司,如 NVDA 或 英伟达" autocomplete="off" style="width:250px"><div id="sug"></div></div><button id="refresh">刷新行情</button><span id="refreshAt" class="mu"></span></header>
+<main id="main">
+<div id="r1"></div>
+<div id="sHome" hidden>
+ <h3>参考行情(TradingView 提供走势)<span class="mu"> <a href="#" data-r="1D">1日</a> · <a href="#" data-r="1M">1月</a> · <a href="#" data-r="12M">1年</a></span></h3>
+ <div class="row3"><div class="card"><div class="mu">比特币 BTC · <a href="https://www.tradingview.com/symbols/BTCUSD/" target="_blank" rel="noopener">TradingView ↗</a></div><div id="tvBtc"></div></div>
+ <div class="card"><div class="mu">布伦特原油 Brent · <a href="https://www.tradingview.com/symbols/TVC-UKOIL/" target="_blank" rel="noopener">TradingView ↗</a></div><div id="tvBrent"></div></div></div>
+ <div class="row3"><div class="card"><h3>Hyperliquid 合约搜索 · <a href="https://app.hyperliquid.xyz/trade" target="_blank" rel="noopener">官网 ↗</a></h3><input id="hlq" type="text" placeholder="输入币种,如 BTC / ETH / SOL(留空=持仓量最大)"><div id="hlr" class="mu" style="margin-top:6px"></div></div>
+ <div class="card"><h3>Polymarket 预测市场搜索 · <a href="https://polymarket.com/" target="_blank" rel="noopener">官网 ↗</a></h3><input id="pmq" type="text" placeholder="输入关键词回车,如 Nvidia / tariff / bitcoin"><div id="pmr" style="margin-top:6px"></div></div></div>
+</div>
+<div id="sDet" hidden><div class="card"><div id="tvChart"></div></div></div>
+<div id="r2"></div>
+<div class="card" id="socialSearch"><h3>社交资讯站内搜索</h3><div class="mu">搜索结果直接显示在本页。X / Truth Social 通过 Google News 索引检索，可能不全且有延迟；不是平台官方实时搜索。</div><div style="display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:7px;margin:8px 0"><input id="socialQ" type="text" placeholder="输入股票代码、公司名或主题，如 NVDA / Nvidia / tariffs"><select id="socialSource"><option value="x">X.com</option><option value="truth">Truth Social</option><option value="reddit">Reddit</option></select><button id="socialGo">站内搜索</button></div><div id="socialResult" class="mu"></div></div>
+</main>
+<footer>美股研究与模拟工具 · 作者：jimmy哥 · Yahoo Finance 非官方行情转发，可能延迟/中断；资金流为分钟线方向估算，不代表逐笔大中小单。非投资建议。</footer>
+<script>
+const $=s=>document.querySelector(s);
+const LS=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch{return d}};
+const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const M=n=>{const a=Math.abs(n);return (n<0?'-':'')+'$'+(a>=1e8?(a/1e8).toFixed(2)+'亿':a>=1e4?(a/1e4).toFixed(2)+'万':a.toFixed(0))};
+let S={src:'free',list:LS('list',['NVDA','AMD','WULF']),acct:LS('acct',{cash:100000,pos:{},log:[]})};
+let lastFree=0,Q={},F={},HL={},HLall=[],PM={},ERR={},qty=100,hd=0,tvSym='';
+const CR=['WULF','MARA','RIOT','CLSK','IREN','COIN','MSTR','HUT','CIFR','BTDR','CORZ'];
+const cur=()=>location.hash.startsWith('#/')?decodeURIComponent(location.hash.slice(2)).toUpperCase():null;
+const newF=()=>({big:{i:0,o:0},mid:{i:0,o:0},sml:{i:0,o:0},last:null,dir:1,ticks:[]});
+const LIST=[['NVDA','NVIDIA 英伟达'],['AMD','AMD 超威半导体'],['AVGO','Broadcom 博通'],['TSM','台积电 TSMC'],['MSFT','Microsoft 微软'],['GOOGL','Alphabet 谷歌'],['META','Meta 脸书'],['AMZN','Amazon 亚马逊'],['AAPL','Apple 苹果'],['TSLA','Tesla 特斯拉'],['SMCI','Super Micro 超微电脑'],['ARM','Arm 安谋'],['MU','Micron 美光'],['INTC','Intel 英特尔'],['QCOM','Qualcomm 高通'],['ASML','ASML 阿斯麦'],['AMAT','Applied Materials 应用材料'],['LRCX','Lam Research 泛林'],['KLAC','KLA 科磊'],['PLTR','Palantir'],['ORCL','Oracle 甲骨文'],['CRWV','CoreWeave'],['NBIS','Nebius'],['WULF','TeraWulf'],['IREN','IREN Iris Energy'],['CIFR','Cipher Mining'],['CORZ','Core Scientific'],['MARA','Marathon Digital'],['RIOT','Riot Platforms'],['CLSK','CleanSpark'],['HUT','Hut 8'],['COIN','Coinbase'],['MSTR','Strategy MicroStrategy'],['ANET','Arista'],['VRT','Vertiv 维谛'],['DELL','Dell 戴尔'],['CRM','Salesforce'],['NOW','ServiceNow'],['SNOW','Snowflake'],['ADBE','Adobe'],['NFLX','Netflix 奈飞'],['UBER','Uber 优步'],['BABA','Alibaba 阿里巴巴'],['PDD','拼多多 PDD'],['BIDU','Baidu 百度'],['JD','京东 JD.com'],['NIO','蔚来 NIO'],['XPEV','小鹏 XPeng'],['LI','理想 Li Auto'],['QQQ','Invesco QQQ 纳指100 ETF'],['SPY','SPDR S&P 500 ETF 标普'],['SMH','VanEck 半导体 ETF'],['SOXX','iShares 半导体 ETF'],['SOXL','半导体3倍做多 ETF'],['TQQQ','纳指3倍做多 ETF'],['XOM','Exxon 埃克森美孚'],['CVX','Chevron 雪佛龙'],['OXY','Occidental 西方石油'],['JPM','JPMorgan 摩根大通'],['BRK.B','Berkshire 伯克希尔']];
+
+/* ---------- 行情数据 ---------- */
+const PROXIES=[u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u),u=>'https://corsproxy.io/?'+encodeURIComponent(u)];
+async function yget(t){const y=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(t)}?interval=1m&range=1d&includePrePost=true&_=${Date.now()}`;let err;
+ for(const p of PROXIES){try{const r=await fetch(p(y));if(!r.ok)throw new Error('HTTP '+r.status);const j=await r.json();const x=j.chart&&j.chart.result&&j.chart.result[0];if(!x)throw new Error('无此代码或暂无数据');return x}catch(e){err=e}}throw err}
+function fromYahoo(t,x){const m=x.meta,qd=(x.indicators&&x.indicators.quote||[{}])[0]||{},closes=qd.close||[],barClose=[...closes].reverse().find(v=>v!=null),c=barClose??m.regularMarketPrice,pc=m.chartPreviousClose||m.previousClose;
+ const op=m.regularMarketOpen||c,barTime=(x.timestamp||[]).at(-1);Q[t]={c,pc,o:op,h:m.regularMarketDayHigh||c,l:m.regularMarketDayLow||c,d:c-pc,dp:pc?(c-pc)/pc*100:0,asof:barTime?barTime*1e3:(m.regularMarketTime||0)*1e3};
+ let i=0,o=0;(qd.close||[]).forEach((cl,k)=>{const v0=qd.volume&&qd.volume[k],po=qd.open&&qd.open[k];if(cl==null||v0==null||po==null)return;const v=cl*v0;if(cl>po)i+=v;else if(cl<po)o+=v;else{i+=v/2;o+=v/2}});
+ (F[t]||(F[t]=newF())).est={i,o}}
+async function pollQ(){if(Date.now()-lastFree<28000)return;lastFree=Date.now();let bad='';
+ for(const t of S.list.slice(0,10)){try{fromYahoo(t,await yget(t))}catch(e){bad=e.message||'网络'}}
+ ERR.q=bad?'Yahoo 行情暂不可用('+bad+'); 稍后刷新或检查网络':'';$('#refreshAt').textContent='行情更新时间 '+new Date().toLocaleTimeString();render(true)}
+
+/* ---------- Hyperliquid / Polymarket ---------- */
+async function hl(){try{const r=await fetch('https://api.hyperliquid.xyz/info',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'metaAndAssetCtxs'})});
+ const [m,c]=await r.json();HLall=m.universe.map((u,i)=>({n:u.name,px:+c[i].markPx,prev:+c[i].prevDayPx,fr:+c[i].funding,oi:+c[i].openInterest*+c[i].markPx})).filter(x=>x.px);
+ HL={};HLall.forEach(x=>{if(['BTC','ETH','SOL'].includes(x.n))HL[x.n]=x});ERR.hl='';hlSearch()}catch(e){ERR.hl='Hyperliquid 读取失败(可能被浏览器跨域限制)'}}
+function hlSearch(){const el=$('#hlr');if(!el)return;const q=$('#hlq').value.trim().toLowerCase();
+ const a=HLall.filter(x=>!q||x.n.toLowerCase().includes(q)).sort((x,y)=>y.oi-x.oi).slice(0,6);
+ el.innerHTML=!HLall.length?(ERR.hl||'加载中…'):a.length?`<table>${a.map(x=>`<tr><td><b>${esc(x.n)}</b></td><td>${x.px.toLocaleString()}</td><td class="${x.px>=x.prev?'g':'r'}">${((x.px/x.prev-1)*100).toFixed(2)}%</td><td>费率年化 ${(x.fr*8760*100).toFixed(1)}%</td><td>OI ${M(x.oi)}</td></tr>`).join('')}</table>`:'未找到该合约'}
+async function pm(q,n=4){const r=await fetch('https://gamma-api.polymarket.com/public-search?q='+encodeURIComponent(q)+'&events_status=active&limit_per_type=8');
+ const j=await r.json(),o=[];(j.events||[]).forEach(e=>(e.markets||[]).forEach(m=>{if(m.closed)return;try{const p=JSON.parse(m.outcomePrices||'[]');if(p.length)o.push({q:m.question,y:+p[0],v:+m.volume24hr||+m.volume||0,url:'https://polymarket.com/event/'+e.slug})}catch{}}));
+ return o.sort((a,b)=>b.v-a.v).slice(0,n)}
+async function loadPM(q){const c=PM[q];if(c&&Date.now()-c.t<(c.e?6e4:3e5))return;const n=PM[q]={t:Date.now(),d:c?c.d:null,e:null};try{n.d=await pm(q)}catch(e){n.e='Polymarket 读取失败(可能被浏览器跨域限制)'}}
+const pmRow=m=>`<div style="margin:4px 0"><a href="${esc(m.url)}" target="_blank" rel="noopener">${esc(m.q)}</a> <b>${(m.y*100).toFixed(0)}%</b></div>`;
+const pmBox=(q,n)=>{loadPM(q);const c=PM[q];return c&&c.d?(c.d.length?c.d.slice(0,n).map(pmRow).join(''):'<div class="mu">暂无相关市场</div>'):`<div class="mu">${c&&c.e?c.e:'加载中…'}</div>`};
+async function pmSearch(){const q=$('#pmq').value.trim(),el=$('#pmr');if(!q)return;el.innerHTML='<div class="mu">搜索中…</div>';
+ try{const r=await pm(q,8);el.innerHTML=r.length?r.map(pmRow).join(''):'<div class="mu">没有相关市场</div>'}catch{el.innerHTML='<div class="mu">读取失败(可能被浏览器跨域限制),<a href="https://polymarket.com/search?q='+encodeURIComponent(q)+'" target="_blank" rel="noopener">去官网搜 ↗</a></div>'}}
+
+/* ---------- 资讯 ---------- */
+const gn=q=>'https://news.google.com/rss/search?q='+encodeURIComponent(q)+'&hl=en-US&gl=US&ceid=US:en';
+const strip=h=>String(h||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+const NW={};
+async function rssItems(u){const r=await fetch('https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent(u));const j=await r.json();if(j.status!=='ok')throw 0;
+ return j.items.map(i=>{let t=i.title||'',s=i.author||'';if(!t||/^\[no title\]/i.test(t))t=strip(i.description).slice(0,220);const k=t.lastIndexOf(' - ');if(k>20&&!s){s=t.slice(k+3);t=t.slice(0,k)}
+  return{t,s,l:/^https?:\/\//.test(i.link||'')?i.link:'#',d:Date.parse(i.pubDate||'')||0}})}
+async function socialSearch(){const q=$('#socialQ').value.trim(),src=$('#socialSource').value,el=$('#socialResult');if(!q)return;el.innerHTML='<div class="mu">搜索中…</div>';
+ try{let items=[];if(src==='reddit'){items=await rssItems('https://www.reddit.com/search.rss?q='+encodeURIComponent(q)+'&sort=new&t=week')}else{const site=src==='x'?'(site:x.com OR site:twitter.com)':'site:truthsocial.com';items=await rssItems(gn(site+' '+q+' when:7d'))}
+  el.innerHTML=items.length?items.slice(0,12).map(i=>`<div style="margin:7px 0"><a href="${esc(i.l)}" target="_blank" rel="noopener">${esc(i.t)}</a><div class="mu">${esc(i.s)} · ${ago(i.d)}</div></div>`).join(''):'<div class="mu">没有找到索引结果。试试代码、公司名和英文关键词。</div>'
+ }catch{el.innerHTML='<div class="mu">搜索服务暂不可用。X/Truth Social 使用 Google News 网页索引；Reddit 使用 RSS 转换服务。请稍后重试。</div>'}}
+async function reddit(){const r=await fetch('https://www.reddit.com/r/wallstreetbets+stocks+investing+StockMarket/hot.json?limit=100&raw_json=1');const j=await r.json();const cut=Date.now()-6*36e5;
+ return j.data.children.map(c=>c.data).filter(x=>x.created_utc*1e3>=cut).map(x=>({t:x.title,s:'r/'+x.subreddit+' · ▲'+x.score,sc:x.score,l:'https://www.reddit.com'+x.permalink,d:x.created_utc*1e3}))}
+const FEEDS={
+ trump:{n:'特朗普 · Truth Social 存档 + 媒体报道',fn:async()=>{const a=await rssItems('https://www.trumpstruth.org/feed').then(x=>x.map(i=>({...i,s:'Truth Social(存档)'}))).catch(()=>[]);
+  const b=await rssItems(gn('Trump (tariff OR oil OR Fed OR chips OR bitcoin OR says) when:2d')).catch(()=>[]);const o=a.concat(b);if(!o.length)throw 0;return o}},
+ bbg:{n:'Bloomberg · 市场',fn:()=>rssItems('https://www.bloomberg.com/feeds/markets/news.rss')},
+ bbgp:{n:'Bloomberg · 政治',fn:()=>rssItems('https://www.bloomberg.com/feeds/politics/news.rss')},
+ rd:{n:'Reddit · 近6小时热帖(WSB/stocks/investing)',fn:reddit,cmp:(a,b)=>b.sc-a.sc}};
+async function loadNews(key,fn,cmp){const c=NW[key];if(c&&Date.now()-c.t<(c.e?6e4:3e5))return;const n=NW[key]={t:Date.now(),d:c?c.d:null,e:null};
+ try{n.d=(await fn()).sort(cmp||((a,b)=>b.d-a.d))}catch(e){n.e='读取失败(可能被限流或浏览器跨域限制),可点原站链接'}}
+const compNews=t=>async()=>{const out=await rssItems(gn(t+' stock when:3d')).catch(()=>[]);
+ if(!out.length)throw 0;const seen=new Set();return out.filter(x=>x.t&&!seen.has(x.t)&&seen.add(x.t))};
+const TG=[['关税',/tariff|duties|trade war/i],['油价',/\boil\b|crude|opec|energy/i],['美联储',/\bfed\b|powell|rate cut|inflation|treasury/i],['芯片/AI',/chip|nvidia|semiconductor|\bAI\b|export control|data center/i],['加密',/bitcoin|crypto/i]];
+const tags=t=>{const o=TG.filter(x=>x[1].test(t)).map(x=>`<span class="tag y">${x[0]}</span>`);
+ S.list.forEach(k=>{if(new RegExp('\\b'+k.replace(/\./g,'\\.')+'\\b').test(t))o.push(`<span class="tag g">${esc(k)}</span>`)});return o.join(' ')};
+const ago=ms=>{if(!ms)return'';const m=Math.round((Date.now()-ms)/6e4);return m<60?Math.max(m,0)+'分钟前':m<1440?Math.round(m/60)+'小时前':Math.round(m/1440)+'天前'};
+const newsList=(key,fn,n,cmp)=>{loadNews(key,fn,cmp);const c=NW[key];return c&&c.d?(c.d.length?c.d.slice(0,n).map(i=>`<div style="margin:6px 0"><a href="${esc(i.l)}" target="_blank" rel="noopener">${esc(i.t)}</a><div class="mu">${esc(i.s)} · ${ago(i.d)} ${tags(i.t)}</div></div>`).join(''):'<div class="mu">暂无</div>'):`<div class="mu">${c&&c.e?c.e:'加载中…'}</div>`};
+
+/* ---------- 逻辑 ---------- */
+function verdict(t){const q=Q[t],f=F[t];if(!q)return{tag:'—',cls:'',why:''};let s=0,w=[];
+ if(q.dp>=3){s++;w.push('日内强势')}else if(q.dp<=-3){s--;w.push('日内走弱')}
+ const p=q.h>q.l?(q.c-q.l)/(q.h-q.l):.5;if(p>.85)w.push('逼近日内高点,谨防追高');else if(p<.15)w.push('逼近日内低点');
+ if(f&&f.est){const T=f.est.i+f.est.o;if(T>0){const r=(f.est.i-f.est.o)/T;if(r>.1){s+=.5;w.push('分钟线买压占优')}else if(r<-.1){s-=.5;w.push('分钟线卖压占优')}}}
+ if(f){const T=f.big.i+f.big.o;if(T>0){const r=(f.big.i-f.big.o)/T;if(r>.2){s++;w.push('大单净流入')}else if(r<-.2){s--;w.push('大单净流出')}}}
+ const b=HL.BTC;if(b&&CR.includes(t)&&b.fr*8760>.3){s-=.5;w.push('BTC杠杆偏拥挤')}
+ const why=w.join(';');return s>=1?{tag:'偏多',cls:'g',why}:s<=-1?{tag:'偏空',cls:'r',why}:{tag:'观望',cls:'y',why}}
+const eq=()=>S.acct.cash+Object.entries(S.acct.pos).reduce((s,[t,p])=>s+p.n*((Q[t]&&Q[t].c)||p.avg),0);
+function trade(t,side){const q=Q[t],n=Math.floor(+qty||0);if(!q||n<=0)return;const A=S.acct,p=A.pos[t]||{n:0,avg:0},px=q.c;
+ if(side==='B'){const c=n*px;if(c>A.cash)return alert('模拟现金不足');A.cash-=c;p.avg=(p.avg*p.n+c)/(p.n+n);p.n+=n;A.pos[t]=p}
+ else{if(n>p.n)return alert('持仓不足');A.cash+=n*px;p.n-=n;if(!p.n)delete A.pos[t]}
+ A.log.unshift({t:new Date().toLocaleString(),sym:t,side,n,px});A.log=A.log.slice(0,50);save('acct',A);render(true)}
+
+/* ---------- 图表组件 ---------- */
+function tv(el,file,cfg){el.innerHTML='';const w=document.createElement('div');w.className='tradingview-widget-container';const i=document.createElement('div');i.className='tradingview-widget-container__widget';w.appendChild(i);
+ const s=document.createElement('script');s.src='https://s3.tradingview.com/external-embedding/'+file;s.async=true;s.text=JSON.stringify(cfg);w.appendChild(s);el.appendChild(w)}
+function setRange(r){const c=sy=>({symbol:sy,width:'100%',height:220,locale:'zh_CN',dateRange:r,colorTheme:'dark',isTransparent:true,autosize:false,largeChartUrl:''});
+ tv($('#tvBtc'),'embed-widget-mini-symbol-overview.js',c('BITSTAMP:BTCUSD'));tv($('#tvBrent'),'embed-widget-mini-symbol-overview.js',c('TVC:UKOIL'))}
+function ensure(t){if(!t){if(!hd){hd=1;setRange('1D')}}else if(tvSym!==t){tvSym=t;tv($('#tvChart'),'embed-widget-advanced-chart.js',{autosize:false,width:'100%',height:460,symbol:t,interval:'5',timezone:'America/New_York',theme:'dark',style:'1',locale:'zh_CN',allow_symbol_change:false,hide_side_toolbar:true,calendar:false})}}
+
+/* ---------- 渲染 ---------- */
+function donut(f){const v=[f.big.i,f.mid.i,f.sml.i,f.big.o,f.mid.o,f.sml.o],c=['#1f7a55','#2fb97a','#7fe0b0','#b3342f','#ef5b5b','#f5a3a3'],T=v.reduce((a,b)=>a+b,0);
+ if(!T)return'<div class="donut" style="background:#262a33"></div>';let a=0;return`<div class="donut" style="background:conic-gradient(${v.map((x,i)=>{const s=a;a+=x/T*100;return c[i]+' '+s+'% '+a+'%'}).join(',')})"></div>`}
+ function bar(){const e=eq();
+  const w=`<div class="note">Yahoo Finance 公共转发数据仅供参考，可能有缓存、延迟或暂时不可用；每 30 秒刷新自选列表前 10 个代码。Yahoo 官方说明行情数据不用于交易/投资用途；请核对各标的“行情时间”，勿据此直接下单。</div>`;
+ return w+`<div class="bar"><b>模拟账户</b><span>总资产 $${e.toFixed(0)}</span><span>现金 $${S.acct.cash.toFixed(0)}</span><span class="${e>=1e5?'g':'r'}">收益 ${((e/1e5-1)*100).toFixed(2)}%</span><button data-act="reset">重置</button><span class="r">${[ERR.q,ERR.ws,ERR.hl].filter(Boolean).join(' · ')}</span></div>`}
+function home1(){const rows=S.list.map(t=>{const q=Q[t],f=F[t],v=verdict(t),net=f&&(f.official||f.ticks.length)?f.big.i-f.big.o:(f&&f.est?f.est.i-f.est.o:null);
+  return`<tr data-t="${esc(t)}"><td><b>${esc(t)}</b></td><td>${q?q.c.toFixed(2):'—'}</td><td class="${q&&q.dp>=0?'g':'r'}">${q?(q.dp>=0?'+':'')+q.dp.toFixed(2)+'%':'—'}</td><td>${q&&q.asof?ago(q.asof):'—'}</td><td>${q&&q.h>q.l?Math.round((q.c-q.l)/(q.h-q.l)*100)+'%':'—'}</td><td class="${net>=0?'g':'r'}">${net===null?'—':M(net)}</td><td><span class="tag ${v.cls}">${v.tag}</span> <span class="mu">${esc(v.why)}</span></td><td><button data-del="${esc(t)}">×</button></td></tr>`}).join('');
+ return`<div class="card"><h3>我的监控标的(点击进入行情)</h3><div style="overflow-x:auto"><table><tr><th>代码</th><th>现价</th><th>涨跌</th><th>行情时间</th><th>日内位置</th><th>分钟线净压力估算*</th><th>简单结论</th><th></th></tr>${rows||'<tr><td colspan="8" class="mu">搜索并添加标的</td></tr>'}</table></div><div class="mu">*按 Yahoo 分钟线 close 与 open 的方向，将整分钟成交额归类为买压/卖压。不是逐笔主动买卖，也不识别真实大中小资金。</div></div>`}
+function home2(){
+ const hlc=['BTC','ETH','SOL'].map(k=>{const h=HL[k];return`<div class="card"><div class="mu">Hyperliquid · ${k} 永续</div>`+(h?`<b>${h.px.toLocaleString()}</b> <span class="${h.px>=h.prev?'g':'r'}">${((h.px/h.prev-1)*100).toFixed(2)}%</span><div class="mu">资金费率年化 ${(h.fr*8760*100).toFixed(1)}% · 持仓 ${M(h.oi)}</div>`:'<div class="mu">加载中…</div>')+'</div>'}).join('');
+ const pms=['Fed','recession','oil'].map(q=>`<div class="card"><div class="mu">Polymarket · ${q}</div>${pmBox(q,2)}</div>`).join('');
+ const nw=Object.entries(FEEDS).map(([k,f])=>`<div class="card"><div class="mu">${f.n}</div>${newsList(k,f.fn,6,f.cmp)}</div>`).join('');
+ return`<div class="row3">${hlc}</div><div class="row3">${pms}</div><h3>资讯参考(黄色标签=宏观主题,绿色=命中你的自选标的)</h3><div class="row3">${nw}</div><div class="mu" style="margin-bottom:12px">原站:<a href="https://truthsocial.com/@realDonaldTrump" target="_blank" rel="noopener">Truth Social @realDonaldTrump</a> · <a href="https://www.bloomberg.com/markets" target="_blank" rel="noopener">Bloomberg Markets</a> · Truth Social 为第三方存档,可能有几分钟延迟。</div>`}
+function det1(t){const q=Q[t];if(!q)return`<div class="card"><button data-act="back">← 返回</button><p class="mu">${esc(t)} 暂无行情(检查代码、数据源或 Key)。</p></div>`;
+ return`<div class="card"><button data-act="back">← 返回</button> <a href="https://www.tradingview.com/symbols/${encodeURIComponent(t)}/" target="_blank" rel="noopener" class="mu">在 TradingView 打开 ↗</a><h2>${esc(t)} <span class="${q.dp>=0?'g':'r'}">${q.c.toFixed(2)} ${q.d>=0?'+':''}${q.d.toFixed(2)} (${q.dp.toFixed(2)}%)</span></h2><div class="mu">今开 ${q.o} · 最高 ${q.h} · 最低 ${q.l} · 昨收 ${q.pc}${q.asof?' · 行情时间 '+new Date(q.asof).toLocaleTimeString()+' ('+ago(q.asof)+')':''}${q.asof&&Date.now()-q.asof>180000?' · ⚠ 时间戳较旧':''}</div></div>`}
+function det2(t){const q=Q[t];if(!q)return'';const f=F[t]||newF(),v=verdict(t),p=S.acct.pos[t];
+ const ti=f.big.i+f.mid.i+f.sml.i,to=f.big.o+f.mid.o+f.sml.o,R=(n,i,o)=>`<tr><td>${n}</td><td class="g">${M(i)}</td><td class="r">${M(o)}</td><td class="${i>=o?'g':'r'}">${M(i-o)}</td></tr>`;
+ const log=S.acct.log.filter(x=>x.sym===t).slice(0,6).map(x=>`<div class="mu">${esc(x.t)} ${x.side==='B'?'买入':'卖出'} ${x.n} @ ${x.px.toFixed(2)}</div>`).join('');
+ return`<div class="grid2"><div class="card"><h3>资金分析</h3>${f.est?`<div>今日分钟线买卖压力(估算):买入 <b class="g">${M(f.est.i)}</b> · 卖出 <b class="r">${M(f.est.o)}</b> · 净 <b class="${f.est.i>=f.est.o?'g':'r'}">${M(f.est.i-f.est.o)}</b></div>`:`<div class="flow">${donut(f)}<div><div>流入 <b class="g">${M(ti)}</b> · 流出 <b class="r">${M(to)}</b> · 净 <b class="${ti>=to?'g':'r'}">${M(ti-to)}</b></div><table><tr><th></th><th>买入</th><th>卖出</th><th>净额</th></tr>${R('大单',f.big.i,f.big.o)}${R('中单',f.mid.i,f.mid.o)}${R('小单',f.sml.i,f.sml.o)}</table></div></div>`}
+<p class="mu">${f.est?'估算口径：Yahoo 分钟线按 K 线涨跌归类全分钟成交额。无法识别逐笔主动方/真实账户规模，也不是券商资金流。':''}</p></div>
+<div class="card"><h3>结论</h3><span class="tag ${v.cls}">${v.tag}</span> <span>${esc(v.why)||'信号不足'}</span>
+<h3>模拟交易(按最新价成交)</h3><div>${p?`持仓 ${p.n} 股 · 均价 ${p.avg.toFixed(2)} · 浮盈 <span class="${q.c>=p.avg?'g':'r'}">${((q.c/p.avg-1)*100).toFixed(2)}%</span>`:'当前无持仓'}</div>
+<div style="margin:8px 0"><input id="qty" type="number" min="1" value="${esc(qty)}" style="width:90px"> 股 <button class="b" data-act="B">买入</button> <button class="s" data-act="S">卖出</button></div>${log}</div></div>
+<div class="card"><h3>Polymarket 相关市场(搜索 ${esc(t)})</h3>${pmBox(t,4)}</div>
+<div class="grid2"><div class="card"><h3>${esc(t)} 相关新闻</h3>${newsList('c:'+t,compNews(t),8)}</div><div class="card"><h3>特朗普 · 近期动态</h3>${newsList('trump',FEEDS.trump.fn,5)}<h3>Bloomberg · 市场</h3>${newsList('bbg',FEEDS.bbg.fn,4)}</div></div>`}
+function render(force){const sm=['Yahoo Finance 公共转发 · 可能延迟','y'];
+ $('#mode').textContent=sm[0];$('#mode').className='tag '+sm[1];
+ const a=document.activeElement;if(!force&&a&&a.tagName==='INPUT'&&$('#main').contains(a))return;
+ const t=cur();$('#sHome').hidden=!!t;$('#sDet').hidden=!t;
+ $('#r1').innerHTML=bar()+(t?det1(t):home1());$('#r2').innerHTML=t?det2(t):home2();ensure(t)}
+
+/* ---------- 搜索添加(防输错) ---------- */
+let sugTimer;
+const cands=(q,remote=[])=>{q=q.trim();if(!q)return[];const l=q.toLowerCase();let m=LIST.filter(([s,n])=>s.toLowerCase().startsWith(l)||n.toLowerCase().includes(l)).slice(0,8);
+ const seen=new Set(m.map(x=>x[0]));m=m.concat(remote.filter(x=>!seen.has(x[0])));
+ if(/^[A-Za-z.\-]{1,6}$/.test(q)&&!m.some(x=>x[0]===q.toUpperCase()))m.push([q.toUpperCase(),'直接添加(不在列表中,请确认代码正确)']);return m.slice(0,10)};
+function showSug(items){const el=$('#sug');if(!items.length){el.style.display='none';el.innerHTML='';return}
+ el.innerHTML=items.map(([s,n],i)=>`<div data-s="${esc(s)}" class="${i?'':'hi'}"><b>${esc(s)}</b> <span class="mu">${esc(n)}</span></div>`).join('');el.style.display='block'}
+function addT(s){s=String(s).trim().toUpperCase();if(!/^[A-Z.\-]{1,8}$/.test(s)||S.list.includes(s))return;S.list.push(s);save('list',S.list);$('#add').value='';showSug([]);pollQ();render(true)}
+$('#add').addEventListener('input',()=>{const q=$('#add').value;showSug(cands(q));clearTimeout(sugTimer);
+ });
+$('#add').addEventListener('keydown',e=>{const el=$('#sug'),it=[...el.children],i=it.findIndex(x=>x.classList.contains('hi'));
+ if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();if(!it.length)return;const n=(i+(e.key==='ArrowDown'?1:-1)+it.length)%it.length;it.forEach(x=>x.classList.remove('hi'));it[n].classList.add('hi')}
+ else if(e.key==='Enter'){if(it[i])addT(it[i].dataset.s)}else if(e.key==='Escape')showSug([])});
+$('#sug').addEventListener('mousedown',e=>{const d=e.target.closest('[data-s]');if(d){e.preventDefault();addT(d.dataset.s)}});
+document.addEventListener('click',e=>{if(!e.target.closest('.sw'))showSug([])});
+
+/* ---------- 事件 ---------- */
+$('#main').addEventListener('click',e=>{const rg=e.target.closest('[data-r]');if(rg){e.preventDefault();return setRange(rg.dataset.r)}
+ const d=e.target.closest('[data-del]');
+ if(d){const t=d.dataset.del;S.list=S.list.filter(x=>x!==t);delete Q[t];delete F[t];save('list',S.list);return render(true)}
+ const a=e.target.closest('[data-act]');if(a){const k=a.dataset.act;if(k==='back')location.hash='';else if(k==='reset'){if(confirm('重置模拟账户为 $100,000?')){S.acct={cash:1e5,pos:{},log:[]};save('acct',S.acct);render(true)}}else trade(cur(),k);return}
+ const r=e.target.closest('tr[data-t]');if(r)location.hash='#/'+r.dataset.t});
+$('#main').addEventListener('input',e=>{if(e.target.id==='qty')qty=e.target.value;if(e.target.id==='hlq')hlSearch()});
+$('#pmq').addEventListener('keydown',e=>{if(e.key==='Enter')pmSearch()});
+window.addEventListener('hashchange',()=>render(true));
+$('#refresh').onclick=()=>{lastFree=0;pollQ()};$('#socialGo').onclick=socialSearch;$('#socialQ').onkeydown=e=>{if(e.key==='Enter')socialSearch()};
+setInterval(pollQ,30000);setInterval(hl,30000);setInterval(render,10000);
+pollQ();hl();render(true);
+</script></body></html>
